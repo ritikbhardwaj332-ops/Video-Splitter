@@ -1,9 +1,15 @@
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("ffmpeg-static");
 const ffprobePath = require("ffprobe-static").path;
+const fs = require("fs");
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
+
+// create clips folder if not exists
+if (!fs.existsSync("clips")) {
+  fs.mkdirSync("clips");
+}
 
 const splitVideo = (videoPath, segmentTime) => {
 
@@ -31,6 +37,13 @@ const splitVideo = (videoPath, segmentTime) => {
         ffmpeg(videoPath)
           .setStartTime(start)
           .setDuration(segmentTime)
+          .videoFilters([
+            `pad=iw:ih+120:0:120:color=black`,
+            `drawtext=fontfile=C\\:/Windows/Fonts/arial.ttf:text='Part ${index + 1}':x=(w-text_w)/2:y=40:fontsize=50:fontcolor=white:box=1:boxcolor=black@0.6`
+          ])
+          .outputOptions([
+            "-preset ultrafast"
+          ])
           .output(output)
           .on("end", () => {
 
@@ -40,8 +53,14 @@ const splitVideo = (videoPath, segmentTime) => {
             index++;
 
             processClip();
+
           })
-          .on("error", reject)
+          .on("error", (err, stdout, stderr) => {
+
+            console.error("FFMPEG ERROR:", stderr);
+            reject(err);
+
+          })
           .run();
 
       };
